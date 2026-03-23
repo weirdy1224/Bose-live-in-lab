@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: linear-gradient(to bottom, #4b6cb7, #182848); }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+  <div class="flex w-full max-w-4xl bg-white rounded-2xl shadow-lg overflow-hidden">
+    <!-- Left Section: Login Form -->
+    <div class="w-1/2 p-10">
+      <div class="flex justify-start mb-6">
+        <img src="images/logo.svg" alt="Logo" class="w-24 h-24">
+      </div>
+      <h2 class="text-3xl font-bold text-center mb-3">Login</h2>
+      <p class="text-gray-500 text-center mb-8 text-lg">Welcome back! Please enter your details.</p>
+
+      <div class="space-y-6">
+        <div>
+          <label for="email" class="block text-base font-medium text-gray-700">Email</label>
+          <input type="email" id="email" placeholder="john.doe@gmail.com" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg">
+        </div>
+        <div>
+          <label for="password" class="block text-base font-medium text-gray-700">Password</label>
+          <input type="password" id="password" placeholder="••••••••" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg">
+        </div>
+
+        <button id="loginBtn" class="w-full bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 transition duration-200 text-lg">Login</button>
+      </div>
+
+      <p class="text-center text-base text-gray-600 mt-6">
+        Don't have an account? <a href="register.html" class="text-blue-600 hover:underline">Sign up</a>
+      </p>
+    </div>
+
+    <!-- Right Section: Image -->
+    <div class="w-1/2 flex items-center justify-center">
+      <img src="images/login.svg" alt="Login illustration" class="w-full h-3/4 object-contain">
+    </div>
+  </div>
+
+  <script>
+    const loginBtn = document.getElementById("loginBtn");
+    
+    // Admin credentials
+    const ADMIN_EMAIL = "founder@gmail.com";
+    const ADMIN_PASSWORD = "founder@123";
+    
+    loginBtn.addEventListener("click", async () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if(!email || !password){
+        alert("Please fill all fields!");
+        return;
+      }
+
+      // Check if admin credentials
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        // Store admin session
+        localStorage.setItem('userId', 'admin');
+        localStorage.setItem('userName', 'Admin');
+        localStorage.setItem('userEmail', ADMIN_EMAIL);
+        localStorage.setItem('isAdmin', 'true');
+        
+        alert("Admin login successful!");
+        window.location.href = "admin.html";
+        return;
+      }
+
+      // Regular user login
+      try {
+        const res = await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        
+        console.log('Login response:', data);
+
+        // Check for success
+        if(data.status === "Success"){
+          // Store user data in localStorage for session
+          localStorage.setItem('userId', data.userId);
+          localStorage.setItem('userName', data.name);
+          localStorage.setItem('userEmail', data.email);
+          localStorage.setItem('userStuid', data.stuid);
+          localStorage.setItem('isAdmin', 'false');
+          
+          alert("Login successful!");
+          
+          // Redirect to dashboard
+          window.location.href = "index.html";
+        } else {
+          // Show error message
+          alert(data.status || "Login failed. Please check your credentials.");
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        alert("Login failed. Please make sure the server is running.");
+      }
+    });
+
+    // Allow Enter key to submit
+    document.getElementById("password").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        loginBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>

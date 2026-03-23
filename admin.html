@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - ConnectedX</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f9fafb;
+    }
+    .dark-gradient {
+      background: linear-gradient(180deg, #1f2937 0%, #374151 100%);
+    }
+    .card {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .tab-active {
+      border-bottom: 3px solid #3b82f6;
+      color: #3b82f6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      background-color: #f3f4f6;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    tr:hover {
+      background-color: #f9fafb;
+    }
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background-color: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const API_URL = '';
+
+    const AddCourseModal = ({ isOpen, onClose, onAdd }) => {
+      if (!isOpen) return null;
+      
+      const [formData, setFormData] = useState({
+        courseId: '',
+        courseName: '',
+        courseCode: '',
+        instructor: '',
+        category: ''
+      });
+      const [isSubmitting, setIsSubmitting] = useState(false);
+
+      const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+      };
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+          const res = await fetch(`${API_URL}/api/courses`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+          });
+          const data = await res.json();
+          if (data.status === 'Success') {
+            onAdd(data.course);
+            onClose();
+            setFormData({ courseId: '', courseName: '', courseCode: '', instructor: '', category: '' });
+          } else {
+            alert(data.message || 'Failed to create course');
+          }
+        } catch (err) {
+          alert('Error creating course. Please try again.');
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
+
+      return (
+        <div className="modal">
+          <div className="modal-content">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">Add New Course</h2>
+              <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-3xl leading-none">&times;</button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Course ID (Unique slug)</label>
+                  <input type="text" name="courseId" required value={formData.courseId} onChange={handleChange} placeholder="e.g. cs101-fa24" className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Course Name</label>
+                  <input type="text" name="courseName" required value={formData.courseName} onChange={handleChange} placeholder="Introduction to Computer Science" className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Course Code</label>
+                  <input type="text" name="courseCode" required value={formData.courseCode} onChange={handleChange} placeholder="CS101" className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Instructor</label>
+                  <input type="text" name="instructor" value={formData.instructor} onChange={handleChange} placeholder="Dr. John Doe" className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <input type="text" name="category" value={formData.category} onChange={handleChange} placeholder="Programming" className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end space-x-3">
+                <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition">
+                  {isSubmitting ? 'Creating...' : 'Create Course'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    const AdminPanel = () => {
+      const [activeTab, setActiveTab] = useState('overview');
+      const [showAddCourseModal, setShowAddCourseModal] = useState(false);
+      const [users, setUsers] = useState([]);
+      const [courses, setCourses] = useState([]);
+      const [groups, setGroups] = useState([]);
+      const [enrollments, setEnrollments] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [stats, setStats] = useState({
+        totalUsers: 0,
+        totalCourses: 0,
+        totalGroups: 0,
+        totalEnrollments: 0
+      });
+
+      useEffect(() => {
+        // Check if user is logged in
+        const userId = localStorage.getItem('userId');
+        const isAdmin = localStorage.getItem('isAdmin');
+        
+        if (!userId) {
+          alert('Please login first');
+          window.location.href = 'login.html';
+          return;
+        }
+        
+        // Check if user is admin
+        if (isAdmin !== 'true') {
+          alert('Access Denied: Admin privileges required');
+          window.location.href = 'index.html';
+          return;
+        }
+        
+        fetchAllData();
+      }, []);
+
+      const fetchAllData = async () => {
+        try {
+          setLoading(true);
+          
+          const [coursesRes, groupsRes] = await Promise.all([
+            fetch(`${API_URL}/api/courses`),
+            fetch(`${API_URL}/api/groups`)
+          ]);
+
+          const coursesData = await coursesRes.json();
+          const groupsData = await groupsRes.json();
+
+          if (coursesData.status === 'Success') {
+            setCourses(coursesData.courses);
+          }
+
+          if (groupsData.status === 'Success') {
+            // FIX: Filter out groups with null courseId
+            const validGroups = groupsData.groups.filter(g => g.courseId != null);
+            setGroups(validGroups);
+          }
+
+          // Calculate stats (using valid groups only)
+          const validGroupsForStats = groupsData.groups?.filter(g => g.courseId != null) || [];
+          setStats({
+            totalUsers: validGroupsForStats.reduce((acc, g) => acc + g.members.length, 0) || 0,
+            totalCourses: coursesData.courses?.length || 0,
+            totalGroups: validGroupsForStats.length,
+            totalEnrollments: coursesData.courses?.reduce((acc, c) => acc + (c.enrolledStudents?.length || 0), 0) || 0
+          });
+
+          setLoading(false);
+        } catch (err) {
+          console.error('Error fetching admin data:', err);
+          setLoading(false);
+        }
+      };
+
+      const OverviewTab = () => (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Dashboard Overview</h2>
+          
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="stat-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white opacity-80 text-sm">Total Users</p>
+                  <p className="text-3xl font-bold mt-1">{stats.totalUsers}+</p>
+                </div>
+                <svg className="w-12 h-12 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="stat-card" style={{background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'}}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white opacity-80 text-sm">Total Courses</p>
+                  <p className="text-3xl font-bold mt-1">{stats.totalCourses}</p>
+                </div>
+                <svg className="w-12 h-12 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="stat-card" style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'}}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white opacity-80 text-sm">Study Groups</p>
+                  <p className="text-3xl font-bold mt-1">{stats.totalGroups}</p>
+                </div>
+                <svg className="w-12 h-12 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="stat-card" style={{background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'}}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white opacity-80 text-sm">Enrollments</p>
+                  <p className="text-3xl font-bold mt-1">{stats.totalEnrollments}</p>
+                </div>
+                <svg className="w-12 h-12 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                  <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="card p-6 mb-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <button
+                onClick={() => setActiveTab('courses')}
+                className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition"
+              >
+                <svg className="w-8 h-8 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <p className="font-medium text-gray-800">Add Course</p>
+              </button>
+              <button
+                onClick={() => setActiveTab('groups')}
+                className="p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition"
+              >
+                <svg className="w-8 h-8 text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <p className="font-medium text-gray-800">View Groups</p>
+              </button>
+              <button
+                onClick={fetchAllData}
+                className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition"
+              >
+                <svg className="w-8 h-8 text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <p className="font-medium text-gray-800">Refresh Data</p>
+              </button>
+              <a
+                href="index.html"
+                className="p-4 border-2 border-gray-200 rounded-lg hover:border-gray-500 hover:bg-gray-50 transition"
+              >
+                <svg className="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <p className="font-medium text-gray-800">Dashboard</p>
+              </a>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="card p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Groups Created</h3>
+            <div className="space-y-3">
+              {groups.slice(0, 5).map(group => (
+                <div key={group._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-800">{group.groupName}</p>
+                    <p className="text-sm text-gray-600">{group.courseId.courseName} • {group.members.length} members</p>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {new Date(group.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+
+      const CoursesTab = () => (
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Manage Courses</h2>
+            <button
+              onClick={() => setShowAddCourseModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+              + Add Course
+            </button>
+          </div>
+
+          <div className="card overflow-hidden">
+            <table>
+              <thead>
+                <tr>
+                  <th>Course Name</th>
+                  <th>Code</th>
+                  <th>Instructor</th>
+                  <th>Category</th>
+                  <th>Enrolled</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {courses.map(course => (
+                  <tr key={course._id}>
+                    <td className="font-medium">{course.courseName}</td>
+                    <td>{course.courseCode}</td>
+                    <td>{course.instructor}</td>
+                    <td>
+                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                        {course.category}
+                      </span>
+                    </td>
+                    <td>{course.enrolledStudents?.length || 0} students</td>
+                    <td>
+                      <button className="text-blue-600 hover:underline text-sm mr-2">Edit</button>
+                      <button className="text-red-600 hover:underline text-sm">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+
+      const GroupsTab = () => (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">All Study Groups</h2>
+
+          <div className="card overflow-hidden">
+            <table>
+              <thead>
+                <tr>
+                  <th>Group Name</th>
+                  <th>Course</th>
+                  <th>Creator</th>
+                  <th>Members</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map(group => (
+                  <tr key={group._id}>
+                    <td className="font-medium">{group.groupName}</td>
+                    <td>{group.courseId.courseName}</td>
+                    <td>{group.createdBy.name}</td>
+                    <td>{group.members.length}/{group.maxMembers}</td>
+                    <td className="capitalize">{group.groupType}</td>
+                    <td>
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        group.status === 'active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {group.status}
+                      </span>
+                    </td>
+                    <td>
+                      <a 
+                        href={`group-detail.html?id=${group._id}`}
+                        className="text-blue-600 hover:underline text-sm mr-2"
+                      >
+                        View
+                      </a>
+                      <button className="text-red-600 hover:underline text-sm">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="spinner mb-4"></div>
+              <p className="text-gray-600">Loading admin panel...</p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen p-6">
+          <div className="max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-4xl font-bold text-gray-800">Admin Panel</h1>
+                  <p className="text-gray-600 mt-1">Manage your ConnectedX platform</p>
+                </div>
+                <a 
+                  href="index.html"
+                  className="bg-white text-gray-800 px-4 py-2 rounded-lg shadow hover:shadow-md transition"
+                >
+                  ← Back to Dashboard
+                </a>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="bg-white rounded-t-lg shadow mb-0">
+              <div className="flex border-b">
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`px-6 py-4 font-medium transition ${
+                    activeTab === 'overview' ? 'tab-active' : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab('courses')}
+                  className={`px-6 py-4 font-medium transition ${
+                    activeTab === 'courses' ? 'tab-active' : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Courses ({courses.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('groups')}
+                  className={`px-6 py-4 font-medium transition ${
+                    activeTab === 'groups' ? 'tab-active' : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Groups ({groups.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Tab Content */}
+            <div className="bg-white rounded-b-lg shadow p-6">
+              {activeTab === 'overview' && <OverviewTab />}
+              {activeTab === 'courses' && <CoursesTab />}
+              {activeTab === 'groups' && <GroupsTab />}
+            </div>
+            
+            <AddCourseModal 
+              isOpen={showAddCourseModal} 
+              onClose={() => setShowAddCourseModal(false)} 
+              onAdd={(newCourse) => {
+                setCourses([...courses, newCourse]);
+                setStats(prev => ({...prev, totalCourses: prev.totalCourses + 1}));
+              }} 
+            />
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AdminPanel />);
+  </script>
+</body>
+</html>

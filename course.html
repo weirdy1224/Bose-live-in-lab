@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Details - ConnectedX</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f9fafb;
+    }
+    .dark-gradient {
+      background: linear-gradient(180deg, #1f2937 0%, #374151 100%);
+    }
+    .sidebar { transition: width 0.3s; }
+    .sidebar-collapsed { width: 60px; }
+    .sidebar-expanded { width: 250px; }
+    .main-content { transition: margin-left 0.3s; }
+    .card {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .tooltip {
+      visibility: hidden;
+      position: absolute;
+      background-color: #1a202c;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+      z-index: 10;
+      left: 70px;
+    }
+    .sidebar-collapsed .nav-item:hover .tooltip { visibility: visible; }
+    .nav-item:hover { background-color: #4b5563; }
+    .progress-bar {
+      height: 8px;
+      background-color: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background-color: #3b82f6;
+      transition: width 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const API_URL = '';
+
+    const NavBar = ({ isSidebarCollapsed, toggleSidebar }) => {
+      const navItems = [
+        { name: 'Dashboard', path: 'index.html', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+        { name: 'Study Groups', path: 'study-groups.html', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
+      ];
+
+      return (
+        <div className={`sidebar dark-gradient ${isSidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'} fixed top-0 left-0 h-screen text-white`}>
+          <div className="flex items-center justify-between p-4">
+            {!isSidebarCollapsed && <h2 className="text-xl font-semibold">ConnectedX</h2>}
+            <button onClick={toggleSidebar} className="text-white focus:outline-none">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isSidebarCollapsed ? 'M9 5h12M9 12h12M9 19h12' : 'M4 6h16M4 12h16M4 18h16'} />
+              </svg>
+            </button>
+          </div>
+          <nav>
+            {navItems.map(item => (
+              <a key={item.name} href={item.path} className="nav-item flex items-center p-4 relative">
+                <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                </svg>
+                {!isSidebarCollapsed && <span>{item.name}</span>}
+                {isSidebarCollapsed && <span className="tooltip">{item.name}</span>}
+              </a>
+            ))}
+          </nav>
+        </div>
+      );
+    };
+
+    const CoursePage = () => {
+      const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+      const [course, setCourse] = useState(null);
+      const [enrollment, setEnrollment] = useState(null);
+      const [groups, setGroups] = useState([]);
+      const [userId, setUserId] = useState('');
+      const [loading, setLoading] = useState(true);
+      const [enrolling, setEnrolling] = useState(false);
+      const [completing, setCompleting] = useState(false);
+
+      useEffect(() => {
+        const storedUserId = localStorage.getItem('userId');
+        if (!storedUserId) {
+          window.location.href = 'login.html';
+          return;
+        }
+        setUserId(storedUserId);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const courseId = urlParams.get('id');
+        
+        if (!courseId) {
+          alert('No course ID provided');
+          window.location.href = 'index.html';
+          return;
+        }
+
+        fetchCourseData(courseId, storedUserId);
+      }, []);
+
+      const fetchCourseData = async (courseId, userId) => {
+        try {
+          const [courseRes, enrollmentsRes, groupsRes] = await Promise.all([
+            fetch(`${API_URL}/api/courses/${courseId}`),
+            fetch(`${API_URL}/api/enrollments/student/${userId}`),
+            fetch(`${API_URL}/api/groups?courseId=${courseId}`)
+          ]);
+
+          const courseData = await courseRes.json();
+          const enrollmentsData = await enrollmentsRes.json();
+          const groupsData = await groupsRes.json();
+
+          if (courseData.status === 'Success') {
+            setCourse(courseData.course);
+          }
+
+          if (enrollmentsData.status === 'Success') {
+            const currentEnrollment = enrollmentsData.enrollments.find(
+              e => e.courseId && e.courseId._id === courseId
+            );
+            setEnrollment(currentEnrollment || null);
+          }
+
+          if (groupsData.status === 'Success') {
+            setGroups(groupsData.groups);
+          }
+
+          setLoading(false);
+        } catch (err) {
+          console.error('Error fetching course data:', err);
+          setLoading(false);
+        }
+      };
+
+      const handleEnroll = async () => {
+        setEnrolling(true);
+        try {
+          const res = await fetch(`${API_URL}/api/enrollments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              studentId: userId,
+              courseId: course._id
+            })
+          });
+
+          const data = await res.json();
+          
+          if (data.status === 'Success') {
+            alert('Enrolled successfully!');
+            setEnrollment(data.enrollment);
+          } else {
+            alert(data.message || 'Enrollment failed');
+          }
+        } catch (err) {
+          console.error('Error enrolling:', err);
+          alert('Enrollment failed');
+        } finally {
+          setEnrolling(false);
+        }
+      };
+
+      const handleCompleteCourse = async () => {
+        if (!enrollment) return;
+
+        setCompleting(true);
+        try {
+          const res = await fetch(`${API_URL}/api/enrollments/${enrollment._id}/complete`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pointsEarned: 50 })
+          });
+
+          const data = await res.json();
+          
+          if (data.status === 'Success') {
+            alert('Congratulations! Course completed! +50 points added to your community score!');
+            setEnrollment(data.enrollment);
+            
+            // Refresh to update stats
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          }
+        } catch (err) {
+          console.error('Error completing course:', err);
+          alert('Failed to complete course');
+        } finally {
+          setCompleting(false);
+        }
+      };
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <p className="text-gray-500">Loading course...</p>
+          </div>
+        );
+      }
+
+      if (!course) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <p className="text-gray-500">Course not found</p>
+          </div>
+        );
+      }
+
+      const isEnrolled = !!enrollment;
+      const isCompleted = enrollment?.status === 'completed';
+      const progress = enrollment?.progress || 0;
+
+      return (
+        <div>
+          <NavBar isSidebarCollapsed={isSidebarCollapsed} toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+          
+          <div className={`main-content ${isSidebarCollapsed ? 'ml-[60px]' : 'ml-[250px]'} p-6 min-h-screen`}>
+            <div className="mb-6">
+              <a href="index.html" className="text-blue-600 hover:underline flex items-center">
+                <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Dashboard
+              </a>
+            </div>
+
+            <div className="card p-8 mb-6">
+              <div className="flex flex-col md:flex-row gap-6">
+                <img 
+                  src={course.imageUrl} 
+                  alt={course.courseName}
+                  className="w-full md:w-64 h-48 object-cover rounded-lg"
+                />
+                <div className="flex-1">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h1 className="text-3xl font-bold text-gray-800 mb-2">{course.courseName}</h1>
+                      <p className="text-gray-600">{course.courseCode}</p>
+                    </div>
+                    {isEnrolled && (
+                      <span className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                        isCompleted 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {isCompleted ? '✓ Completed' : 'In Progress'}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-gray-700 mb-4">{course.description}</p>
+
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <p className="text-sm text-gray-600">Instructor</p>
+                      <p className="font-medium text-gray-800">{course.instructor}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Duration</p>
+                      <p className="font-medium text-gray-800">{course.duration}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Category</p>
+                      <p className="font-medium text-gray-800">{course.category}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Students Enrolled</p>
+                      <p className="font-medium text-gray-800">{course.enrolledStudents?.length || 0}</p>
+                    </div>
+                  </div>
+
+                  {isEnrolled && !isCompleted && (
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-600">Progress</span>
+                        <span className="font-medium text-gray-800">{progress}%</span>
+                      </div>
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    {!isEnrolled ? (
+                      <button
+                        onClick={handleEnroll}
+                        disabled={enrolling}
+                        className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
+                      >
+                        {enrolling ? 'Enrolling...' : 'Enroll Now'}
+                      </button>
+                    ) : !isCompleted ? (
+                      <button
+                        onClick={handleCompleteCourse}
+                        disabled={completing}
+                        className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-50"
+                      >
+                        {completing ? 'Completing...' : 'Mark as Completed'}
+                      </button>
+                    ) : (
+                      <div className="bg-green-100 text-green-800 px-8 py-3 rounded-lg font-medium">
+                        ✓ Completed • +{enrollment.pointsEarned} points
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Study Groups ({groups.length})
+                </h2>
+                <a 
+                  href="study-groups.html" 
+                  className="text-blue-600 hover:underline text-sm"
+                >
+                  View All Groups
+                </a>
+              </div>
+
+              {groups.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p className="mb-2">No study groups yet for this course</p>
+                  <a href="study-groups.html" className="text-blue-600 hover:underline">
+                    Create the first one!
+                  </a>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {groups.slice(0, 3).map(group => (
+                    <div key={group._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                      <h3 className="font-bold text-gray-800 mb-2">{group.groupName}</h3>
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                        {group.description || 'No description'}
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">
+                          {group.members.length}/{group.maxMembers} members
+                        </span>
+                        <a 
+                          href={`group-detail.html?id=${group._id}`}
+                          className="text-blue-600 hover:underline text-sm"
+                        >
+                          View →
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<CoursePage />);
+  </script>
+</body>
+</html>

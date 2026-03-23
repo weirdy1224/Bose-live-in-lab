@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course: Data Science Fundamentals</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: white;
+    }
+
+    .dark-gradient {
+      background: linear-gradient(180deg, #1f2937 0%, #374151 100%);
+    }
+
+    .sidebar {
+      transition: width 0.3s;
+    }
+
+    .sidebar-collapsed {
+      width: 60px;
+    }
+
+    .sidebar-expanded {
+      width: 250px;
+    }
+
+    .sidebar a {
+      transition: background 0.2s;
+    }
+
+    .main-content {
+      transition: margin-left 0.3s;
+    }
+
+    .card {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .tooltip {
+      visibility: hidden;
+      position: absolute;
+      background-color: #1a202c;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+      z-index: 10;
+      left: 70px;
+    }
+
+    .sidebar-collapsed .nav-item:hover .tooltip {
+      visibility: visible;
+    }
+
+    .nav-item:hover {
+      background-color: #4b5563;
+    }
+
+    .link-hover:hover {
+      color: #4b5563;
+    }
+
+    .section-content {
+      transition: all 0.3s ease;
+    }
+
+    .video-container {
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 0;
+        overflow: hidden;
+      }
+
+      .sidebar-expanded {
+        width: 250px;
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const NavBar = ({ isSidebarCollapsed, toggleSidebar }) => {
+      const navItems = [
+        { name: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+        { name: 'Teachers', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
+        { name: 'My Grades', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+        { name: 'Messages', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 12c0-4.418 4.03-8 9-8s9 4.582 9 8z' },
+        { name: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
+        { name: 'Support', icon: 'M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z' },
+      ];
+
+      return (
+        <div className={`sidebar dark-gradient ${isSidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'} fixed top-0 left-0 h-screen text-white`}>
+          <div className="flex items-center justify-between p-4">
+            {!isSidebarCollapsed && <h2 className="text-xl font-semibold">ConnectedX</h2>}
+            <button onClick={toggleSidebar} className="text-white focus:outline-none">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isSidebarCollapsed ? 'M9 5h12M9 12h12M9 19h12' : 'M4 6h16M4 12h16M4 18h16'} />
+              </svg>
+            </button>
+          </div>
+          <nav>
+            {navItems.map(item => (
+              <a key={item.name} href={item.name === 'Dashboard' ? 'index.html' : '#'} className="nav-item flex items-center p-4 relative" aria-label={item.name}>
+                <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                </svg>
+                {!isSidebarCollapsed && <span>{item.name}</span>}
+                {isSidebarCollapsed && <span className="tooltip">{item.name}</span>}
+              </a>
+            ))}
+          </nav>
+        </div>
+      );
+    };
+
+    const MyConnections = () => (
+      <div className="card p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">My Connections</h3>
+        <div className="space-y-4">
+          <div className="flex items-center">
+            <img src="images/person1.jpg" alt="Teacher" className="w-10 h-10 rounded-full mr-3" />
+            <div>
+              <p className="text-sm font-medium text-gray-800">Isabel Nelson</p>
+              <p className="text-xs text-[#60a5fa]">Java, JavaScript</p>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <img src="images/person2.jpg" alt="Teacher" className="w-10 h-10 rounded-full mr-3" />
+            <div>
+              <p className="text-sm font-medium text-gray-800">Anton Shevchuk</p>
+              <p className="text-xs text-[#60a5fa]">Python, C++</p>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <img src="images/person3.jpg" alt="Teacher" className="w-10 h-10 rounded-full mr-3" />
+            <div>
+              <p className="text-sm font-medium text-gray-800">Ethan Martin</p>
+              <p className="text-xs text-[#60a5fa]">Python, C++</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+    const UpcomingEvents = () => (
+      <div className="card p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Upcoming Events</h3>
+          <a href="#" className="text-sm text-[#60a5fa] link-hover">See All</a>
+        </div>
+        <div className="space-y-4">
+          <a href={`event.html?id=${encodeURIComponent('Coding: What is eaten with?')}`} className="block hover:bg-gray-100 rounded-lg transition-transform transition-shadow duration-200 ease-in-out hover:scale-105 hover:shadow-lg">
+            <div className="flex items-center p-2">
+              <img src="images/event.jpg" alt="Event" className="w-10 h-10 rounded-lg mr-3" />
+              <div>
+                <p className="text-sm font-medium text-gray-800">Coding: What is eaten with?</p>
+                <p className="text-xs text-[#60a5fa]">14.12.2023, 12:00</p>
+              </div>
+            </div>
+          </a>
+          <a href={`event.html?id=${encodeURIComponent('ICML International Conference on Machine...')}`} className="block hover:bg-gray-100 rounded-lg transition-transform transition-shadow duration-200 ease-in-out hover:scale-105 hover:shadow-lg">
+            <div className="flex items-center p-2">
+              <img src="images/pp.jpg" alt="Event" className="w-10 h-10 rounded-lg mr-3" />
+              <div>
+                <p className="text-sm font-medium text-gray-800">ICML International Conference on Machine...</p>
+                <p className="text-xs text-[#60a5fa]">21.12.2023, 14:00</p>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+    );
+
+    const CourseSection = ({ title, localVideoPath, details, isExpanded, toggleExpand }) => {
+      const [useLocalVideo] = useState(true);
+
+      return (
+        <div className="card p-4">
+          <div className="flex justify-between items-center cursor-pointer" onClick={() => toggleExpand(title)}>
+            <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+            <svg className={`w-5 h-5 text-gray-600 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7-7-7 7" />
+            </svg>
+          </div>
+          <div className={`section-content overflow-hidden ${isExpanded ? 'max-h-screen mt-4' : 'max-h-0'}`}>
+            <div className="mb-6">
+              {useLocalVideo ? (
+                <div className="video-container rounded-lg overflow-hidden">
+                  <video className="w-full max-w-3xl mx-auto aspect-video object-cover" controls>
+                    <source src="videos/rickroll.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              ) : (
+                <div className="w-full max-w-3xl mx-auto aspect-video bg-gray-200 rounded-lg flex items-center justify-center">
+                  <svg className="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  <p className="text-gray-600 ml-2">Video placeholder</p>
+                </div>
+              )}
+            </div>
+            <div className="text-gray-600">{details}</div>
+          </div>
+        </div>
+      );
+    };
+
+    const CoursePage = () => {
+      const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+      const [expandedSection, setExpandedSection] = useState(null);
+      const [isCourseCompleted, setIsCourseCompleted] = useState(false);
+
+      const DEFAULT_COURSE_ID = 'Data Science Fundamentals';
+      const queryParams = new URLSearchParams(window.location.search);
+      const courseId = queryParams.get('id') || DEFAULT_COURSE_ID;
+
+      useEffect(() => {
+        const completedKey = `completed_${courseId}`;
+        const storedCompleted = localStorage.getItem(completedKey) === 'true';
+        setIsCourseCompleted(storedCompleted);
+      }, [courseId]);
+
+      const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
+      const toggleExpand = (sectionTitle) => setExpandedSection(expandedSection === sectionTitle ? null : sectionTitle);
+
+      const handleCompleteCourse = () => {
+        if (isCourseCompleted) {
+          console.log(`Course "${courseId}" already completed.`);
+          return;
+        }
+
+        try {
+          const completedKey = `completed_${courseId}`;
+          localStorage.setItem(completedKey, 'true');
+        } catch (e) {
+          console.warn('localStorage write failed', e);
+        }
+
+        setIsCourseCompleted(true);
+        alert('Course completed! Please go to course.html page to mark complete and update your community score.');
+      };
+
+      return (
+        <div>
+          <NavBar isSidebarCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
+          <div className={`main-content bg-white ${isSidebarCollapsed ? 'ml-[60px]' : 'ml-[250px]'} p-6 min-h-screen`}>
+            <div className="mb-6">
+              <h1 className="text-3xl font-semibold text-gray-800">{decodeURIComponent(courseId)}</h1>
+              <p className="text-sm text-gray-500">Started on 15.11.2023</p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <CourseSection
+                  title="Course Overview"
+                  localVideoPath="videos/rickroll.mp4"
+                  details={<p>Master the fundamentals of data science with Python. Learn statistics, machine learning, data visualization, and how to extract insights from data.</p>}
+                  isExpanded={expandedSection === 'Course Overview'}
+                  toggleExpand={toggleExpand}
+                />
+                <CourseSection
+                  title="Learning Objectives"
+                  localVideoPath="videos/rickroll.mp4"
+                  details={
+                    <ul className="list-disc pl-5">
+                      <li>Understand statistical concepts and probability</li>
+                      <li>Master data manipulation with Pandas and NumPy</li>
+                      <li>Create compelling visualizations with Matplotlib and Seaborn</li>
+                      <li>Build machine learning models with scikit-learn</li>
+                      <li>Apply data science to real-world problems</li>
+                    </ul>
+                  }
+                  isExpanded={expandedSection === 'Learning Objectives'}
+                  toggleExpand={toggleExpand}
+                />
+                <CourseSection
+                  title="Key Concepts"
+                  localVideoPath="videos/rickroll.mp4"
+                  details={
+                    <ul className="list-disc pl-5">
+                      <li>Exploratory Data Analysis (EDA)</li>
+                      <li>Statistical inference and hypothesis testing</li>
+                      <li>Supervised and unsupervised learning</li>
+                      <li>Feature engineering and selection</li>
+                      <li>Model evaluation and validation</li>
+                      <li>Data cleaning and preprocessing</li>
+                    </ul>
+                  }
+                  isExpanded={expandedSection === 'Key Concepts'}
+                  toggleExpand={toggleExpand}
+                />
+                <CourseSection
+                  title="Assignments"
+                  localVideoPath="videos/rickroll.mp4"
+                  details={
+                    <ul className="list-disc pl-5">
+                      <li>Analyze a real-world dataset with Pandas</li>
+                      <li>Build predictive models for classification</li>
+                      <li>Create data visualizations and dashboards</li>
+                      <li>Implement clustering algorithms</li>
+                      <li>Final capstone project: End-to-end data science pipeline</li>
+                    </ul>
+                  }
+                  isExpanded={expandedSection === 'Assignments'}
+                  toggleExpand={toggleExpand}
+                />
+                <CourseSection
+                  title="Resources"
+                  localVideoPath="videos/rickroll.mp4"
+                  details={<p>Kaggle Datasets, Python Data Science Handbook, Scikit-learn Documentation, Coursera Data Science Specialization, and Towards Data Science blog.</p>}
+                  isExpanded={expandedSection === 'Resources'}
+                  toggleExpand={toggleExpand}
+                />
+                <div className="mt-8 flex justify-center">
+                  <button
+                    onClick={handleCompleteCourse}
+                    disabled={isCourseCompleted}
+                    className={`bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isCourseCompleted ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+                  >
+                    {isCourseCompleted ? 'Course Completed' : 'Complete Course'}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-6">
+                <MyConnections />
+                <UpcomingEvents />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    if (!window.React || !window.ReactDOM) {
+      document.getElementById('root').innerHTML = `<div style="padding: 20px; color: red;">Failed to load React or ReactDOM.</div>`;
+    } else {
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<CoursePage />);
+    }
+  </script>
+</body>
+
+</html>
