@@ -15,10 +15,28 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/live-in';
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ Connected to MongoDB'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) return;
+  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/live-in';
+  try {
+    const db = await mongoose.connect(MONGODB_URI);
+    isConnected = db.connections[0].readyState;
+    console.log('✅ Connected to MongoDB');
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err);
+    throw err;
+  }
+};
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ status: "Error", message: "Database connection failed. Please ensure MONGODB_URI is set correctly." });
+  }
+});
 
 // ============================================
 // AUTH ENDPOINTS (Existing)
